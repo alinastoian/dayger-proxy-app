@@ -1,11 +1,13 @@
 /**
- * Vercel serverless function
- * Path: /api/send
+ * /api/send  –  Vercel serverless function
+ * Proxies availability data from the Dayger form to Google Apps Script
+ * and handles CORS for dayger.co.uk.
  */
+
 export default async function handler(req, res) {
-  // ──────────────────────────────────────────────
-  // 1. CORS – allow Dayger front-end origins only
-  // ──────────────────────────────────────────────
+  /* ────────────────────────────────
+     1.  CORS – only allow Dayger site
+  ───────────────────────────────────*/
   const allowedOrigins = [
     "https://dayger.co.uk",
     "https://www.dayger.co.uk"
@@ -18,24 +20,23 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Handle pre-flight request
+  // Pre-flight (OPTIONS) reply
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // Only POST is accepted for real work
   if (req.method !== "POST") {
     return res.status(405).json({ message: "Only POST requests allowed" });
   }
 
-  // ──────────────────────────────────────────────
-  // 2. Forward data to Google Apps Script
-  // ──────────────────────────────────────────────
-  const body = req.body;
+  /* ────────────────────────────────
+     2.  Forward the payload to Apps Script
+  ───────────────────────────────────*/
+  const body = req.body;   // { email, name, days[] }
 
   try {
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbwXldkZPwNVrg18oXG8yw20U2wLwF5tLn6ye_xSZGYzbnyWBTbLVTpByTzoFWMTTq_bEg/exec",
+      "https://script.google.com/macros/s/AKfycbwXIdkZPwNVrg18oXG8yw20U2wLwF5tLn6ye_xSZGYzbnyWBtBLvTpByTzoFWMTrq_bEg/exec",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,13 +45,10 @@ export default async function handler(req, res) {
     );
 
     const resultText = await response.text();
-
-    // Bubble the Apps Script response back to the browser
     return res.status(200).json({ success: true, response: resultText });
   } catch (error) {
     console.error("Proxy error:", error);
-    return res
-      .status(500)
-      .json({ success: false, error: error.message || "Proxy failed" });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
+
